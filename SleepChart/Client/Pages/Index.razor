@@ -1,0 +1,73 @@
+﻿@page "/"
+
+<div style="padding: 1.5em 1em">
+    <h2>What is this?</h2>
+
+    <p>
+        Sleep Charter is a free tool that generates sleep charts from CSV files of some popular devices/apps that lack suitable functionality.<br />
+        Please select your CSV type from the menu below to go to the respective tool.<br /><br />
+        If your app/device isn't in the list below, please contact me at <a href="mailto:kizari93@gmail.com">kizari93@gmail.com</a>
+        and I'll be happy to discuss the possibility of including it.
+    </p>
+    <br /><br />
+
+    <h2>Update</h2><br />
+
+    <p>
+        Due to constantly changing file formats of the various sleep trackers, the wide variety of different sleep trackers, and users also tracking data manually,
+        I have added the following tool to enable users to graph their data regardless of column names or date formats.<br /><br />
+        The other tools are still available below for those that prefer the more automatic approach, but be aware that these may break over time as
+        the vendors update their file formats.
+    </p>
+    <a style="font-size: 1.4rem; font-weight: bold" href="/universal">Universal Charter</a><br /><br /><br />
+
+    <h2>Select Tool</h2><br />
+
+    <a style="font-size: 1.4rem; font-weight: bold" href="/samsung">Samsung Health and Galaxy Watch CSV Charter</a><br />
+    <small>
+        This will chart Sleep Data from the Samsung Health app.<br />
+        Sleep data gathered by the Galaxy Watch (and possibly Gear?) devices are stored in SHealth.<br />
+        For a guide on extracting your CSV files from SHealth, please <a href="javascript:alert('Under Development');">click here</a>.
+    </small>
+    <br /><br />
+
+    <a style="font-size: 1.4rem; font-weight: bold" href="/fitbit/chart">Fitbit Sleep Tracking</a><br />
+    <small>
+        This will chart Sleep Data exported from Fitbit devices in CSV format.
+    </small>
+    <br /><br />
+
+    <span style="font-size: 1.4rem; font-weight: bold">Sleep As Android</span><br />
+    <a href="/sleepasandroid/chart">Chart</a>&nbsp;|&nbsp;
+    <a href="/sleepasandroid/table">Table</a><br />
+    <small>
+        This will parse and process Sleep Data from the backup CSV files of the Sleep As Android app.
+    </small>
+    <br /><br />
+
+    <a style="font-size: 1.4rem; font-weight: bold" href="/manual">Manual Data Charting</a><br />
+    <small>
+        This will chart Sleep Data from a manually created spreadsheet.<br />
+    </small>
+    <br /><br /><br />
+
+    <h2>Privacy</h2>
+
+    <p>
+        This tool runs entirely client-side, so your sleep data never leaves the device you access this website from.<br />
+        No data is tracked or stored by this application.
+    </p>
+    <br /><br />
+
+    <h2>Disclaimer</h2>
+
+    <p>
+        This application is provided free of charge as-is.<br />
+        No responsibility is claimed for software bugs or inaccurate data.<br /><br />
+        These charts are not provided as a diagnosis, nor as a scientifically or medically accurate record.<br />
+        However, these charts can be useful for identifying potential trends to evoke further investigation.<br /><br />
+        If you feel your data is being charted incorrectly or inaccurately,<br />
+        please contact me at <a href="mailto:kizari93@gmail.com">kizari93@gmail.com</a> so I can attempt to correct the issue.<br /><br />
+        Please note that I am a volunteer and my free time is very limited, so changes may take some time.
+    </p>
+</div>

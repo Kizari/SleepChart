@@ -1,0 +1,40 @@
+@inject NavigationManager Navigation
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code
+{
+    //protected override void OnInitialized()
+    //{
+    //    string url = Navigation.Uri;
+    //    string relativeUrl = url.Replace(Navigation.BaseUri, "").Replace("#", "");
+    //    Console.WriteLine(relativeUrl);
+    //    Navigation.NavigateTo(relativeUrl);
+
+    //    Navigation.LocationChanged += OnLocationChanged;
+    //}
+
+    //public void Dispose()
+    //{
+    //    Navigation.LocationChanged -= OnLocationChanged;
+    //}
+
+    //private void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    //{
+    //    if(e.Location.Contains("#"))
+    //    {
+    //        string relativeUrl = e.Location.Replace(Navigation.BaseUri, "").Replace("#", "");
+    //        Console.WriteLine(relativeUrl);
+    //        Navigation.NavigateTo(relativeUrl);
+    //    }
+    //}
+}

@@ -1,0 +1,42 @@
+﻿@page "/manual"
+
+<Chart Parse="Parse" />
+
+@code
+{
+    private IEnumerable<ChartableSleepData> Parse(CsvReader csv)
+    {
+        var records = csv.GetRecords<ManualSleepData>().ToList();
+
+        var data = records.Select(r =>
+        {
+            return new ChartableSleepData
+            {
+                StartDateTime = new DateTime(
+                    int.Parse(r.SleepStart.Substring(0, 4)),
+                    int.Parse(r.SleepStart.Substring(5, 2)),
+                    int.Parse(r.SleepStart.Substring(8, 2)),
+                    int.Parse(r.SleepStart.Substring(11, 2)),
+                    int.Parse(r.SleepStart.Substring(14, 2)),
+                    0),
+                EndDateTime = new DateTime(
+                    int.Parse(r.SleepEnd.Substring(0, 4)),
+                    int.Parse(r.SleepEnd.Substring(5, 2)),
+                    int.Parse(r.SleepEnd.Substring(8, 2)),
+                    int.Parse(r.SleepEnd.Substring(11, 2)),
+                    int.Parse(r.SleepEnd.Substring(14, 2)),
+                    0)
+                //StartDateTime = DateTime.ParseExact(r.SleepStart, "yyyy-MM-dd HH:mmZ", System.Globalization.CultureInfo.InvariantCulture),
+                //EndDateTime = DateTime.ParseExact(r.SleepEnd, "yyyy-MM-dd HH:mmZ", System.Globalization.CultureInfo.InvariantCulture)
+            };
+        })
+        .OrderBy(d => d.StartDateTime);
+
+        foreach(var record in data)
+        {
+            Console.WriteLine(record.EndDateTime.ToString("d MMMM yyyy h:mmtt"));
+        }
+
+        return data;
+    }
+}

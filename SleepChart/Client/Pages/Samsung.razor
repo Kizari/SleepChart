@@ -1,0 +1,28 @@
+﻿@page "/samsung"
+
+<Chart Parse="Parse" />
+
+@code
+{
+    private string StartDate { get; set; }
+    private string EndDate { get; set; }
+
+    private IEnumerable<ChartableSleepData> Parse(CsvReader csv)
+    {
+        csv.Read(); // Skip the first record as it's not part of the data
+        var records = csv.GetRecords<SamsungSleepData>().ToList();
+        var samsung = new DateTime(1970, 1, 1).AddHours(-1);
+
+        return records.Select(r =>
+        {
+            var offset = int.Parse(r.TimeOffset.Substring(3, 3));
+
+            return new ChartableSleepData
+            {
+                StartDateTime = DateTime.ParseExact(r.SleepStartTime, "yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture).AddHours(offset),
+                EndDateTime = DateTime.ParseExact(r.SleepEndTime, "yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture).AddHours(offset)
+            };
+        })
+        .OrderBy(d => d.StartDateTime);
+    }
+}

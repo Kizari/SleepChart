@@ -1,0 +1,57 @@
+﻿@inherits LayoutComponentBase
+
+@inject ThemeService Theme
+
+<style>
+    body {
+        background-color: @Theme.BackgroundColor;
+        color: @Theme.TextColor;
+    }
+
+    a, a:link, a:visited, a:active, a:hover, a:focus {
+        color: @Theme.LinkColor;
+        text-decoration: none;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row py-3 align-items-center no-print" style="background-color: @Theme.HeaderBackground;">
+        <div class="col">
+            <h2>Sleep Charter</h2>
+        </div>
+        <div class="col-auto">
+            <strong>Theme</strong>
+        </div>
+        <div class="col-auto">
+            <select class="form-control" style="max-width: 300px; display: inline-block !important" @bind="SelectedTheme">
+                <option value="@Services.Theme.Light">Light</option>
+                <option value="@Services.Theme.Dark">Dark</option>
+            </select>
+        </div>
+    </div>
+
+    @Body
+</div>
+
+@code
+{
+    protected override void OnInitialized()
+    {
+        _selectedTheme = Theme.Theme.ToString();
+    }
+
+    private string _selectedTheme;
+    private string SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            if(!EqualityComparer<string>.Default.Equals(_selectedTheme, value))
+            {
+                _selectedTheme = value;
+                Theme.Theme = Enum.Parse<Services.Theme>(value);
+                StateHasChanged();
+            }
+        }
+    }
+}

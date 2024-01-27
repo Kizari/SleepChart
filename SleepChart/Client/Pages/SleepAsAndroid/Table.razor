@@ -1,0 +1,292 @@
+﻿@page "/sleepasandroid/table"
+
+@inject IJSRuntime JSRuntime
+@inject ThemeService Theme
+
+<style>
+    .tabular th, .tabular td {
+        padding-right: 20px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    /*.tabular th:first-child, .tabular td:first-child {
+        padding-left: 10px;
+    }*/
+
+    .tabular th {
+        border-bottom: 2px solid @Theme.BorderColor;
+        text-align: right;
+    }
+
+    .tabular td {
+        border-bottom: 1px solid @Theme.BorderColor;
+        text-align: right;
+    }
+</style>
+
+<div class="row no-print my-3 align-items-center">
+    <div class="col">
+        <strong class="d-block mb-2">Select your CSV file to generate your list (larger files may take some time to generate)</strong>
+        <InputFile OnChange="OnFileSelected" />
+    </div>
+    <div class="col-auto">
+        Start
+    </div>
+    <div class="col-auto">
+        <input type="date" @bind-value="FilterDateRangeStart" class="form-control" />
+    </div>
+    <div class="col-auto">
+        End
+    </div>
+    <div class="col-auto">
+        <input type="date" @bind-value="FilterDateRangeEnd" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <input class="form-control" type="text" placeholder="Column Header" @bind-value="HeaderName" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary mr-2" @onclick="AddColumn">Add Column</button>
+        <button class="btn btn-primary" @onclick="RemoveColumn">Remove Last Custom Column</button>
+    </div>
+</div>
+
+@Errors
+
+@if (IsLoading)
+{
+    <div class="loading-indicator-container">
+        <LoadingIndicator />
+    </div>
+}
+else
+{
+    if (Data != null)
+    {
+        <table class="tabular">
+            <thead>
+                <tr>
+                    <th><strong>Date</strong></th>
+                    <th><strong>Time to Bed</strong></th>
+                    <th><strong>Sleep Start</strong></th>
+                    <th><strong>Time Up</strong></th>
+                    <th><strong>User Recorded Awakenings</strong></th>
+                    <th><strong>Device Recorded Awakenings</strong></th>
+                    <th><strong>Total Hours of Sleep</strong></th>
+                    <th><strong>Comments</strong></th>
+                    @foreach (var column in ExtraColumns)
+                    {
+                        <th><strong>@column</strong></th>
+                    }
+                </tr>
+            </thead>
+
+        @foreach(var data in Data.Where(d => d.Date >= FilterDateRangeStart && d.Date <= FilterDateRangeEnd))
+        {
+            <tr>
+                <td>
+                    @data.Date.ToString("d MMM yyyy")
+                </td>
+                <td>
+                    @data.TimeToBed.ToString("H:mm")
+                </td>
+                <td>
+                    @data.SleepStart.ToString("H:mm")
+                </td>
+                <td>
+                    @data.TimeUp.ToString("H:mm")
+                </td>
+                <td>
+                    @data.UserAwakenings
+                </td>
+                <td>
+                    @data.AutoAwakenings
+                </td>
+                <td>
+                    @data.HoursOfSleep
+                </td>
+                <td>
+                    @data.Comments
+                </td>
+                @foreach(var column in ExtraColumns)
+                {
+                    <td></td>
+                }
+            </tr>
+        }
+        </table>
+    }
+}
+
+@code
+{
+    private string Errors { get; set; }
+    private bool IsLoading { get; set; }
+    private IEnumerable<TabularSleepData> Data { get; set; }
+    private List<string> ExtraColumns { get; set; } = new List<string>();
+    private string HeaderName { get; set; }
+    private DateTime FilterDateRangeStart { get; set; }
+    private DateTime FilterDateRangeEnd { get; set; }
+
+    private void AddColumn()
+    {
+        ExtraColumns.Add(HeaderName);
+        HeaderName = null;
+    }
+
+    private void RemoveColumn()
+    {
+        if (ExtraColumns.Count > 0)
+        {
+            ExtraColumns.Remove(ExtraColumns.Last());
+        }
+    }
+
+    private async Task OnFileSelected(IFileListEntry[] files)
+    {
+        IsLoading = true;
+
+        var stream = files[0].Data;     // We're only allowing one file at a time, so will always be at [0]
+
+        using (var memoryStream = new MemoryStream())
+        {
+            // Stream needs to be copied to avoid an exception (bug with InputFile library)
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var reader = new StreamReader(memoryStream);
+
+            using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.CurrentCulture))
+            {
+                csv.Configuration.HasHeaderRecord = false;
+                var records = new List<TabularSleepData>();
+                var ninteenSeventy = new DateTime(1970, 1, 1);
+
+                while (csv.Read())
+                {
+                    var tz = csv.GetField(1);
+                    var from = csv.GetField(2);
+                    var to = csv.GetField(3);
+                    var comments = csv.GetField(7);
+
+                    int i = 15;
+                    int userAwakenings = 0;
+                    int autoAwakenings = 0;
+                    DateTime sleepStart = default;
+                    string sleepEvent = "";
+
+                    if (from.Length == 17 || from.Length == 18)
+                    {
+                        //Count += from + ", ";
+                    }
+
+                    try
+                    {
+                        //var start = DateTime.ParseExact(from, new string[] { "dd. MM. yyyy h:mm", "dd. MM. yyyy hh:mm" }, System.Globalization.CultureInfo.InvariantCulture);
+                        //var end = DateTime.ParseExact(to, new string[] { "dd. MM. yyyy h:mm", "dd. MM. yyyy hh:mm" }, System.Globalization.CultureInfo.InvariantCulture);
+                        var start = ParseDate(from);
+                        var end = ParseDate(to);
+                        TimeSpan offset;
+
+                        if (tz.Contains("Etc/"))
+                        {
+                            offset = TimeSpan.FromHours(int.Parse(tz.Substring(8)));
+                        }
+                        else
+                        {
+                            offset = TimeZoneInfo.FindSystemTimeZoneById(tz).GetUtcOffset(start);
+                        }
+
+                        while (csv.TryGetField<string>(i, out sleepEvent))
+                        {
+                            if (sleepStart == default)
+                            {
+                                string secondsSince1970String = "";
+
+                                if(sleepEvent.Contains("LIGHT_START"))
+                                {
+                                    secondsSince1970String = sleepEvent.Replace("LIGHT_START-", "");
+                                }
+                                else if(sleepEvent.Contains("DEEP_START"))
+                                {
+                                    secondsSince1970String = sleepEvent.Replace("DEEP_START-", "");
+                                }
+                                else if(sleepEvent.Contains("REM_START"))
+                                {
+                                    secondsSince1970String = sleepEvent.Replace("REM_START-", "");
+                                }
+
+                                if(secondsSince1970String != "")
+                                {
+                                    var secondsSince1970 = long.Parse(secondsSince1970String) / 1000;
+                                    sleepStart = ninteenSeventy.AddSeconds(secondsSince1970).Add(offset);
+                                }
+                            }
+
+                            if (sleepStart != default && sleepEvent.Contains("AWAKE_START"))
+                            {
+                                autoAwakenings++;
+                            }
+                            else if (sleepStart != default && sleepEvent.Contains("TRACKING_PAUSED"))
+                            {
+                                userAwakenings++;
+                            }
+
+                            i++;
+                        }
+
+                        records.Add(new TabularSleepData
+                        {
+                            Date = start.Date,
+                            HoursOfSleep = double.Parse(csv.GetField(5)),
+                            TimeToBed = start,
+                            TimeUp = end,
+                            SleepStart = sleepStart,
+                            UserAwakenings = userAwakenings,
+                            AutoAwakenings = autoAwakenings,
+                            Comments = comments
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        if(!ex.ToString().Contains("Index and length must refer to a location within the string"))
+                            Errors = sleepEvent + " - " + ex.ToString();
+                        // Must be a header row or noise data row, don't add to data
+                        //if(from.Length == 17 || from.Length == 18)
+                        //{
+                        //    Count = from + " - " + ex.ToString();
+                        //}
+                    }
+                }
+
+                Data = records.OrderBy(d => d.TimeToBed);
+                FilterDateRangeStart = Data.First().Date.Date;
+                FilterDateRangeEnd = Data.Last().Date.Date;
+            }
+        }
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private DateTime ParseDate(string date)
+    {
+        // dd. MM. yyyy h:mm
+        var day = date.Substring(0, 2);
+        var month = date.Substring(4, 2);
+        var year = date.Substring(8, 4);
+        var hour = date.Substring(13, 2);
+        var minute = date.Substring(15);
+
+        if (hour.Contains(":"))
+        {
+            hour = hour.Substring(0, 1);
+        }
+
+        if (minute.Contains(":"))
+        {
+            minute = minute.Substring(1);
+        }
+
+        return new DateTime(int.Parse(year), int.Parse(month), int.Parse(day), int.Parse(hour), int.Parse(minute), 0);
+    }
+}

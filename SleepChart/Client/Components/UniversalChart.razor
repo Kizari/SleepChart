@@ -1,0 +1,212 @@
+﻿@inject IJSRuntime JSRuntime
+@inject ThemeService Theme
+
+<div class="row no-print my-3 align-items-center">
+    @if (ShouldRender)
+    {
+        @*<div class="col-auto">
+            @{ 
+                var midpoints = Data
+                    .Where(d => d.StartDateTime >= DateRangeStart && d.StartDateTime <= DateRangeEnd && d.EndDateTime >= DateRangeStart && d.EndDateTime <= DateRangeEnd)
+                    .Select(d => new DateTime(d.StartDateTime.Ticks + ((d.EndDateTime.Ticks - d.StartDateTime.Ticks) / 2)));
+
+                var differences = new List<double>();
+                for (int i = 1; i < midpoints.Count(); i++)
+                {
+                    var difference = (midpoints.ElementAt(i) - midpoints.ElementAt(i - 1)).TotalHours;
+                    if(difference > 8)
+                    {
+                        differences.Add(difference);
+                    }
+                    Console.WriteLine("Difference: " + difference);
+                }
+
+                var average = Math.Round(differences.Average() - 24.0, 2);
+            }
+            Average phase delay for this period: @average
+        </div>*@
+        <div class="col">
+            <button class="btn btn-primary" @onclick="() => ShouldRender = false">Edit Filters</button>
+        </div>
+    }
+    else
+    {
+        <div class="col-auto">
+            Bar Colour
+        </div>
+        <div class="col-auto">
+            <input type="text" @bind-value="BarColor" class="form-control" />
+        </div>
+        <div class="col-auto">
+            Start
+        </div>
+        <div class="col-auto">
+            <input type="date" @bind-value="FilterDateRangeStart" class="form-control" />
+        </div>
+        <div class="col-auto">
+            End
+        </div>
+        <div class="col-auto">
+            <input type="date" @bind-value="FilterDateRangeEnd" class="form-control" />
+        </div>
+        <div class="col-auto">
+            Width(px)
+        </div>
+        <div class="col-auto">
+            <input type="number" class="form-control" @bind-value="FilterWidth" />
+        </div>
+        <div class="col-auto">
+            Height(px)
+        </div>
+        <div class="col-auto">
+            <input type="number" class="form-control" @bind-value="FilterHeight" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="ScaleToViewport">Scale to Viewport</button>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="Render">Render</button>
+        </div>
+    }
+</div>
+
+@Errors
+
+@if (IsLoading)
+{
+    <div class="loading-indicator-container">
+        <LoadingIndicator />
+    </div>
+}
+else
+{
+    if (ShouldRender)
+    {
+        var modifier = Width / 25.0;
+        var step = (int)Math.Ceiling(Days.Count(d => d.Date >= DateRangeStart && d.Date <= DateRangeEnd) / modifier);
+        var stepCounter = 1;
+        var first = Days.Where(d => d.Date >= DateRangeStart && d.Date <= DateRangeEnd).FirstOrDefault();
+        var index = first == null ? 0 : Days.IndexOf(first);
+        var yAxisHeight = (1.0 / 24.0) * 100.0;
+        var columnWidth = ((double)1 / (double)Days.Count(d => d.Date >= DateRangeStart && d.Date <= DateRangeEnd)) * 100.0;
+        <div style="width: @(Width)px; height: @(Height)px; display: flex; flex-direction: row">
+            <div style="height: 100%; border-right: 1px solid @Theme.BorderColor; border-left: 1px solid @Theme.BorderColor">
+                @for (int i = 23; i >= 0; i--)
+                {
+                    <div style="width: 100%; padding: 0 0.5em; height: @yAxisHeight%; border-bottom: 1px solid @Theme.BorderColor; display: flex; align-items: end; justify-content: right; @(i == 23 ? $"border-top: 1px solid {Theme.BorderColor}" : "")">
+                        <div><small>@i:00</small></div>
+                    </div>
+                }
+            </div>
+            @foreach (var day in Days.Where(d => d.Date >= DateRangeStart && d.Date <= DateRangeEnd))
+            {
+                <div style="width: @(columnWidth)%; height: 100%; align-items: end; position: relative; @(Days.Last() == day ? "border-right: 1px solid @Theme.BorderColor" : "")">
+                    @foreach (var bar in day.Bars.OrderByDescending(b => b.YStart))
+                    {
+                        <div style="position: absolute; left: 1px; right: 0; top: @(((1440.0 - bar.YEnd) / 1440.0) * 100.0)%; height: @(((bar.YEnd - bar.YStart) / 1440.0) * 100.0)%; background-color: @BarColor;"></div>
+                    }
+                    <div style="height: 100%;">
+                        @for (int i = 23; i >= 0; i--)
+                        {
+                            <div style="width: 100%; height: @yAxisHeight%; border-bottom: 1px solid @Theme.BorderColor; @(i == 23 ? $"border-top: 1px solid {Theme.BorderColor};" : "") @(stepCounter % step == 0 ? $"border-right: 1px solid {Theme.BorderColor}" : "")"></div>
+                        }
+                    </div>
+                </div>
+                stepCounter++;
+            }
+        </div>
+        <div style="width: @(Width)px; display: flex; flex-direction: row; border-bottom: 1px solid @Theme.BorderColor">
+            <div style="padding: 0 0.5em; border-left: 1px solid @Theme.BorderColor"><small style="color: @Theme.BackgroundColor">00:00</small></div>
+            @for (int i = index; i < index + Days.Count(d => d.Date >= DateRangeStart && d.Date <= DateRangeEnd); i += step)
+            {
+                <div style="width: @(columnWidth * step)%; border-right: 1px solid @Theme.BorderColor; padding: 0.2em; @(i == 0 ? $"border-left: 1px solid {Theme.BorderColor}" : "")">
+                    <small>@((MarkupString)Days.ElementAt(i).Date.ToString("d<br />MMM"))</small>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code
+{
+    private IEnumerable<ChartableSleepData> Data { get; set; }
+
+    private string Errors { get; set; } = "";
+    private bool ShouldRender { get; set; }
+    private bool IsLoading { get; set; }
+    private List<Day> Days { get; set; }
+    private DateTime XStart { get; set; }
+    private int XLength { get; set; }
+    private int Offset { get; set; } = 13;
+    private int Width { get; set; } = 1920;
+    private int Height { get; set; } = 1080;
+    private DateTime DateRangeStart { get; set; }
+    private DateTime DateRangeEnd { get; set; }
+
+    private int FilterWidth { get; set; } = 1920;
+    private int FilterHeight { get; set; } = 1080;
+    private DateTime FilterDateRangeStart { get; set; }
+    private DateTime FilterDateRangeEnd { get; set; }
+    private string BarColor { get; set; } = "#4682b4";
+
+    private string Count { get; set; }
+
+    private void Render()
+    {
+        Width = FilterWidth;
+        Height = FilterHeight;
+        DateRangeStart = FilterDateRangeStart;
+        DateRangeEnd = FilterDateRangeEnd;
+        ShouldRender = true;
+    }
+
+    private async Task ScaleToViewport()
+    {
+        var width = await JSRuntime.InvokeAsync<int>("interop.getWindowWidth");
+        var height = await JSRuntime.InvokeAsync<int>("interop.getWindowHeight");
+        FilterWidth = width - 40;
+        FilterHeight = height - 230;
+    }
+
+    public void SetData(IEnumerable<ChartableSleepData> data)
+    {
+        Data = data;
+
+        XStart = Data.First().StartDateTime.Date;
+        XLength = (int)(Data.Last().EndDateTime.Date - XStart).TotalDays + 1;
+        DateRangeStart = XStart;
+        DateRangeEnd = Data.Last().EndDateTime.Date;
+        FilterDateRangeStart = DateRangeStart;
+        FilterDateRangeEnd = DateRangeEnd;
+
+        Days = new List<Day>();
+
+        for (int i = 0; i < XLength; i++)
+        {
+            var currentDay = XStart.AddDays(i);
+            var nextDay = XStart.AddDays(i + 1);
+            var entries = Data
+                .Where(d => (d.EndDateTime >= currentDay && d.EndDateTime < nextDay) || (d.StartDateTime >= currentDay && d.StartDateTime < nextDay))
+                .OrderBy(d => d.StartDateTime);
+
+            var bars = entries.Select(e => new Bar
+            {
+                YStart = e.StartDateTime < currentDay ? 0 : e.StartDateTime.TimeOfDay.TotalMinutes,
+                YEnd = e.EndDateTime >= nextDay ? 1440 : e.EndDateTime.TimeOfDay.TotalMinutes
+            });
+
+            foreach(var bar in bars)
+            {
+                Console.WriteLine("Bar: " + bar.YStart + ", " + bar.YEnd);
+            }
+
+            Days.Add(new Day
+            {
+                Date = currentDay,
+                Bars = bars
+            });
+        }
+
+        StateHasChanged();
+    }
+}
