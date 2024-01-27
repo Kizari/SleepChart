@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# Action to be manually triggered by repository maintainers
 on:
   workflow_dispatch:
 
+# Allows write permission so the GitHub Pages deploy action can do its thing
 permissions:
   contents: write
 
@@ -10,11 +12,21 @@ jobs:
   deploy-to-github-pages:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v3
+      # Sets up the .NET Core SDK required for the program to run
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v4.0.0
+      # Publishes the SleepChart client application to the "release" folder
       - name: Publish .NET Core Project
         run: dotnet publish SleepChart/Client/SleepChart.Client.csproj -c Release -o release --nologo
+      # Change the base-tag in index.html to be suitable for the GitHub Pages subdirectory (this is done here to avoid messing things up in the dev environment)
+      - name: Change base-tag in index.html
+        run: sed -i 's/<base href="\/" \/>/<base href="\/SleepChart\/" \/>/g' release/wwwroot/index.html
+      # Add .nojekyll file to tell GitHub pages not to treat this as a Jekyll project to prevent errors on files/folders starting with an underscore (such as _framework used by Blazor)
+      - name: Add .nojekyll file
+        run: touch release/wwwroot/.nojekyll
+      # Commits the published website to the "gh-pages" branch so GitHub Pages can use it
       - name: Commit wwwroot to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
